@@ -1,0 +1,121 @@
+# Security-System
+Human Movement Detector using PIR Sensor and Gas Value Detector using MQ-5 Sensor with Danger Alert on Notification and LCD of BlynkIoT App
+/*************************************************************
+
+  This sketch shows how to write values to Virtual Pins
+
+  NOTE:
+  BlynkTimer provides SimpleTimer functionality:
+    http://playground.arduino.cc/Code/SimpleTimer
+
+  App dashboard setup:
+    Value Display widget attached to Virtual Pin V5
+ *************************************************************/
+
+/* Fill-in information from Blynk Device Info here */
+#define BLYNK_TEMPLATE_ID "TMPL69TOeOj5l"
+#define BLYNK_TEMPLATE_NAME "BLYNK DHT11"
+#define BLYNK_AUTH_TOKEN "xWNHroH_0AaGmlC-Cr-xQ3Sk1aKO-znb"
+
+/* Comment this out to disable prints and save space */
+#define BLYNK_PRINT Serial
+
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#define Gas A0
+WidgetLCD lcd(V7);
+int treshold = 100;
+int sensorValue= 0;
+
+
+int PIR = 16;
+int counter = 0;
+int pos = 0;
+int JumlahDeteksi = 0;
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "vivo V25e";  // your ssid
+char pass[] = "butuhtok";           // your passchar pass[] = "YourPassword";
+
+int gas;
+int distance;
+int modeAuto = 0;
+BlynkTimer timer;
+
+// This function sends Arduino's up time every second to Virtual Pin (5).
+// In the app, Widget's reading frequency should be set to PUSH. This means
+// that you define how often to send data to Blynk App.
+void getSensordata ()
+{
+  int sensorValue= analogRead(Gas);
+  Serial.println(sensorValue);
+  Serial.print("value gas :");
+
+  if(sensorValue>700){
+    digitalWrite(21,HIGH);
+     Blynk.logEvent("Security_System","Danger Alert! Gas Value are on set point");
+     lcd.clear();
+     lcd.print(0,0,"Danger Alert!!");
+     lcd.print(0,1, "S Value = ");
+     lcd.print(10,1, sensorValue);
+  }else{
+    digitalWrite(21,LOW);
+  }
+  delay(1000);
+  Blynk.virtualWrite(V3, sensorValue);
+  }
+
+void myTimerEvent() {
+  int distance = digitalRead(PIR);
+  Serial.print("sensor :");
+  Serial.println(distance);
+  if (distance == 1) {
+    JumlahDeteksi = 1;
+    Serial.print("Jumlah deteksi: ");
+    Serial.println(counter);
+    digitalWrite(22, 1);
+    lcd.clear();
+    lcd.print(2,0,"People Enter"); 
+     lcd.print(2,1, "Detected");
+
+    
+  } else {
+     JumlahDeteksi = 0;
+    digitalWrite(22, 0);
+    Blynk.virtualWrite(V4, counter);
+    Blynk.logEvent("Security_System", "People Enter Detected");
+ 
+  }
+  delay(2000);
+  if (JumlahDeteksi != pos){
+    if (JumlahDeteksi == 1){
+      counter = counter + 1;
+    }
+  }
+}
+
+void setup() {
+  // Debug console
+  pinMode(23, OUTPUT);
+  pinMode(21, OUTPUT);
+  pinMode(22, OUTPUT);
+  pinMode(PIR, INPUT);
+  Serial.begin(115200);
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  // You can also specify server:
+  //Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, "blynk.cloud", 80);
+  //Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, IPAddress(192,168,1,100), 8080);
+
+  // Setup a function to be called every second
+  timer.setInterval(1000L, myTimerEvent);
+  timer.setInterval(1000L, getSensordata);
+}
+
+  // process received value
+
+void loop() {
+  Blynk.run();
+  timer.run();  // Initiates BlynkTimer
+}
